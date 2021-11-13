@@ -1,4 +1,4 @@
-# Labeling API v 2.1
+# Labeling API
 
 ###### v2.0 created by Weber Huang at 2021-10-07; v2.1 last updated by Weber Huang at 2021-11-11
 
