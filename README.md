@@ -23,7 +23,6 @@
   + [sample_result](#sample_result)
 + [Error code](#error-code)
 + [System Recommendation and Baseline Performance](#system-recommendation-and-baseline-performance)
-+ [Appendix](#appendix)
 
 ## Description
 
@@ -483,48 +482,4 @@ Error code in this project is group by <u>API task error code</u> and <u>HTTP er
 + Max memory usage(maximum resident set size ) :   812.38 Mb
 
 
-
-## Appendix
-
-**Problem of celery multiprocessing (Unsolved)**
-
-```bash
-[2021-11-09 09:03:32,151: ERROR/ForkPoolWorker-7] Task celery_worker.label_data[db5f76cc40f811ecb688d45d6456a14d] raised unexpected: AssertionError('daemonic processes are not allowed to have children')
-Traceback (most recent call last):
-  File "/home/deeprd2/audience-api/venv/lib/python3.8/site-packages/celery/app/trace.py", line 450, in trace_task
-    R = retval = fun(*args, **kwargs)
-  File "/home/deeprd2/audience-api/venv/lib/python3.8/site-packages/celery/app/trace.py", line 731, in __protected_call__
-    return self.run(*args, **kwargs)
-  File "/home/deeprd2/audience-api/utils/worker_core.py", line 15, in measure_task
-    mem_usage, result = memory_usage(
-  File "/home/deeprd2/audience-api/venv/lib/python3.8/site-packages/memory_profiler.py", line 330, in memory_usage
-    p.start()
-  File "/usr/lib/python3.8/multiprocessing/process.py", line 118, in start
-    assert not _current_process._config.get('daemon'), \
-AssertionError: daemonic processes are not allowed to have children
-```
-
-The problem is due to the memory tracking decorator from `utils/worker_core.py` used by `celery_woker.py` : 
-
-```python
-@celery_app.task(name=f'{name}.label_data', track_started=True)
-@memory_usage_tracking # this line
-def label_data(task_id: str, **kwargs) -> List[str]:
-```
-
-It seems that the problem is cause by the python memory tracing module, `memory_profiler`, which uses the build-in python multiprocessing module. While in local environment (windows10) configure the pooling strategy with celery command `-P solo`, it is fine. The problem occurs when deploys the project to remote Linux using multiprocessing default pooling `-P prefork`.
-
-In [Celery Execution Pools: What is it all about?](https://www.distributedpython.com/2018/10/26/celery-execution-pool/) it says : 
-
-> The prefork pool implementation is based on Python’s [multiprocessing](https://docs.python.org/dev/library/multiprocessing.html#module-multiprocessing) package. It allows your Celery worker to side-step [Python’s Global Interpreter Lock](https://docs.python.org/dev/glossary.html#term-global-interpreter-lock) and fully leverage multiple processors on a given machine.
-
-Some cases of similar issues with celery multiprocessing at official Git hub : 
-
-[Tasks are not allowed to start sub processes](https://github.com/celery/celery/issues/1709) 
-
-[daemonic processes are not allowed to have children](https://github.com/celery/celery/issues/4525)
-
-Ok, it seems that the problem is about python multiprocessing module (`-P prefork`), there is nothing wrong currently by switching `-P prefork` to `-P threads` under the ubuntu environment.
-
-So how about using `eventlet` or `gevent`? with a multiprocessing module, they will all fail. I still cannot figure out any clue about this problem, the current way is to disable the memory track decorator, since it is not directly related to the project goal. 
 
