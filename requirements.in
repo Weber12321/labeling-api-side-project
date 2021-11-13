@@ -1,0 +1,12 @@
+ahocorapy
+celery==5.1.2
+fastapi==0.68.11
+gevent==21.8.0
+memory_profiler==0.58.0
+pandas==1.3.3
+python-dotenv
+pymysql
+redis
+sqlmodel
+tqdm
+uvicorn[standard]
